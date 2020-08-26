@@ -88,7 +88,7 @@ const qriSaveAndPublish = async (options) => {
 (async () => {
   const options = {
     username: 'qri-autobot',
-    dsname: 'brooklyn-hourly-weather-test',
+    dsname: 'brooklyn-hourly-weather',
     filePath: 'data/brooklyn.csv',
     qriHost: 'http://qri-autobot.chriswhong.com:2503'
   }
