@@ -93,16 +93,13 @@ const qriSaveAndPublish = async (options) => {
     qriHost: 'http://qri-autobot.chriswhong.com:2503'
   }
   try {
+    // save the current dataset body as a CSV
     await downloadLatest(options)
 
+    // append a row with current weather data
     await updateCSV(options)
 
-    await delay(5000)
-    fs.readFile(options.filePath, (err, data) => {
-      console.log(data.toString('utf8'))
-    })
-
-    // check out the file
+    // commit and push to qri cloud
     await qriSaveAndPublish(options)
   } catch(e) {
     console.log('Something went wrong')

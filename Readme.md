@@ -1,32 +1,28 @@
 # qri_weather_bot
 
-Node scripts and a dockerfile for automatically committing new rows to a Qri dataset.
+Nodejs script for automated update of a qri weather dataset
 
 ## How It Works
 
-`start.sh` is fired every X minutes using a cron job.  It starts the qri docker container, runs `weather.js`, and stops the container.
+This repo contains a nodejs script `weather.js` that does the following:
 
-`weather.js` calls the openweathermap api and gets current data for Brooklyn.  It parses the JSON response and creates a single new row, appending it to `brooklyn.csv`.
-Next, it calls `qri save --body ./brooklyn.csv me/brooklyn` to create a new commit based on the latest data.  It then calls `qri publish me/brooklyn', pushing the new commit to Qri Cloud.
+1. Pull the latest version of the qri dataset [`qri-autobot/brooklyn-hourly-weather`](https://qri.cloud/qri-autobot/brooklyn-hourly-weather), save it to CSV
 
-## Build the Docker Container
+2. Hit the openweathermap api, getting current weather data for Brooklyn, NY.
 
-`docker build . -t qri_weather_bot` in this directory will build the image, installing qri from source and running `qri init`.  This sets up the ipfs node and qri repo with a programmatically generated peername.
+3. Append a new row of data to the CSV from #1.
 
-## Run the Container
+4. Commit a new version of the dataset and publish it to qri cloud.
 
-When running the container, a volume is used to provide a different `config.yaml` than the one created when the image is built.  (Volumes are mounted for the .qri directory and the scripts directory)
+## CircleCI
 
-`docker run -d -v ~/qri_weather_bot/.qri:/root/.qri -v ~/qri_weather_bot/js:/root/js --name qri_weather_bot qri_weather_bot`
+We make use of circleci scheduled workflows to run this script once an hour. See `.circleci/config.yaml` to see how the job `build` is defined, and then run hourly using cron syntax.
+
+## Environment variables
+
+Ensure that `OPENWEATHERMAP_API_KEY` is set to your openweathermap api key and available in your circleci project.  To run locally, create a `.env` file in the root of this repo with `OPENWEATHERMAP_API_KEY=somereallylongkey`
 
 
-## Registry Handshake
+## Cloud Qri Instance
 
-There is a manual step necessary to create a custom peername (versus the auto-generated one that will exist when first running the container) and register a new user with qri.cloud
-
-The config.yaml was created by manually running `qri init --peername qri_weather_bot` and then registering with qri.cloud using curl:
-
-```
-curl 'http://localhost:2503/registry/profile/new' -H 'Accept: application/json' -H 'Content-Type: application/json' --data-binary '{"username":"qri_weather_bot","email":"qri_weather_bot@qri.io","password":"somepassword"}'
-
-```
+The script makes use of a qri instance hosted in the cloud.  The node code communicates with the qri instance via an http API.  This approach means that we don't need to worry about building or spinning up qri in the CI container.  As long as we can get to the internet, we can get/commit/push the dataset from an ephemeral container.
