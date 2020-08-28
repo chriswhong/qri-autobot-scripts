@@ -2,7 +2,7 @@ version: 2.1
 orbs:
   node: circleci/node@1.1
 jobs:
-  build:
+  qri-weather-bot:
     executor:
       name: node/default
       tag: '10.4'
@@ -10,8 +10,18 @@ jobs:
       - checkout
       - node/with-cache:
           steps:
-            - run: yarn
-      - run: node weather.js
+            - run: cd qri-weather-bot && yarn
+      - run: cd qri-weather-bot && node weather.js
+  nyc-subway-elevators:
+    executor:
+      name: node/default
+      tag: '10.4'
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run: cd nyc-subway-elevators && yarn
+      - run: cd nyc-subway-elevators && node script.js
 workflows:
   hourly:
     triggers:
@@ -22,4 +32,14 @@ workflows:
               only:
                 - master
     jobs:
-      - build
+      - qri-weather-bot
+  daily:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - nyc-subway-elevators
