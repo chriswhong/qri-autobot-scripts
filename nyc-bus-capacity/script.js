@@ -146,9 +146,14 @@ const qriSaveAndPublish = async (options) => {
 
 
 (async () => {
+
+  // generate a datasetname based on the date
+  const dsname = `nyc-bus-capacity-${new Date().toISOString().slice(0,10)}`
+  console.log(dsname)
+
   const options = {
     username: 'qri-autobot',
-    dsname: 'nyc-bus-capacity',
+    dsname,
     filePath: 'data/buses.csv',
     qriHost: 'http://autobot.qri.cloud'
   }
@@ -160,10 +165,10 @@ const qriSaveAndPublish = async (options) => {
     // append a row with current weather data
     await updateCSV(options)
 
-    // // commit and push to qri cloud
+    // commit and push to qri cloud
     await qriSaveAndPublish(options)
   } catch(e) {
-    console.log('Something went wrong')
+    console.log('Something went wrong', e)
   }
 })().catch(err => {
     console.error(err);
