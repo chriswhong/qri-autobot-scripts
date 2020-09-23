@@ -168,7 +168,7 @@ const qriSaveAndPublish = async (options) => {
     // commit and push to qri cloud
     await qriSaveAndPublish(options)
   } catch(e) {
-    console.log('Something went wrong', e)
+    console.error('Something went wrong', e)
   }
 })().catch(err => {
     console.error(err);
