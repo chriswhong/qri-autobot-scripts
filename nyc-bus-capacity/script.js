@@ -10,7 +10,7 @@ require('dotenv').config()
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const headerRow = 'timestamp, name, main, description, temp, feels_like, pressure, humidity, visibility, wind_speed, wind_degrees\n'
+const headerRow = 'response_time,recorded_at_time,line_ref,direction_ref,vehicle_ref,block_ref,longitude,latitude,passenger_count,passenger_capacity\n'
 
 fs.ensureDirSync('./data')
 
@@ -29,22 +29,82 @@ const downloadLatest = async ({ username, dsname, filePath, qriHost }) => {
 
 const updateCSV = async ({ filePath }) => {
   return new Promise(async (resolve, reject) => {
-    // call to openweathermap api, Brooklyn NY city id is 5110302
-    const apiCall = `https://api.openweathermap.org/data/2.5/weather?id=5110302&appid=${process.env.OPENWEATHERMAP_API_KEY}`
+    // call mta SIRI api
+    const apiCall = `http://bustime.mta.info/api/siri/vehicle-monitoring.json?key=${process.env.MTA_API_KEY}&version=2`
 
     const response = await fetch(apiCall)
      .then(res => res.json())
 
-    console.log(response)
+    const {
+      VehicleMonitoringDelivery: vehicleMonitoringDelivery
+    } = response.Siri.ServiceDelivery
 
-    const { dt, name, weather, main, wind, visibility } = response
-    const [{ main: mainWeather, description }] = weather
-    const { temp, feels_like, pressure, humidity } = main
-    const { speed: wind_speed, deg: wind_degrees } = wind
+    console.log(vehicleMonitoringDelivery)
 
-    // append a line to the CSV
-    const newLine = `"${new Date(dt * 1000).toISOString()}","${name}","${mainWeather}","${description}",${temp},${feels_like},${pressure},${humidity},${visibility},${wind_speed},${wind_degrees}\n`
-    fs.appendFileSync(filePath, newLine)
+    const vmd = vehicleMonitoringDelivery[0].VehicleActivity
+    const response_time = vehicleMonitoringDelivery[0].ResponseTimestamp
+
+    const observations = vmd.map((d) => {
+      const {
+        MonitoredVehicleJourney,
+        // ResponseTimestamp: response_timestamp,
+        RecordedAtTime: recorded_at_time
+      } = d
+
+      const {
+        LineRef: line_ref,
+        DirectionRef: direction_ref,
+        OriginRef: origin_ref,
+        DesintationRef: destination_ref,
+        VehicleLocation,
+        VehicleRef: vehicle_ref,
+        BlockRef: block_ref,
+        MonitoredCall
+      } = MonitoredVehicleJourney
+
+      const {
+        Longitude: longitude,
+        Latitude: latitude
+      } = VehicleLocation
+
+      let passenger_count = null
+      let passenger_capacity = null
+
+      if (MonitoredCall && MonitoredCall.Extensions && MonitoredCall.Extensions.Capacities) {
+        passenger_count = MonitoredCall.Extensions.Capacities.EstimatedPassengerCount
+        passenger_capacity = MonitoredCall.Extensions.Capacities.EstimatedPassengerCapacity
+      }
+
+      const observation = {
+        response_time,
+        recorded_at_time,
+        line_ref,
+        direction_ref,
+        vehicle_ref,
+        block_ref,
+        longitude,
+        latitude,
+        passenger_count,
+        passenger_capacity
+      }
+
+      return observation
+    })
+
+    console.log(observations)
+
+    // append new lines to CSV
+    const newLines = observations.map((d) => {
+      const values = []
+      Object.keys(d).forEach((key) => { values.push(d[key]) })
+      console.log(values)
+
+      return values.join(',')
+    })
+
+    console.log(newLines)
+
+    fs.appendFileSync(filePath, newLines.join('\n'))
     resolve()
   })
 }
@@ -88,18 +148,19 @@ const qriSaveAndPublish = async (options) => {
 (async () => {
   const options = {
     username: 'qri-autobot',
-    dsname: 'brooklyn-hourly-weather',
-    filePath: 'data/brooklyn.csv',
+    dsname: 'nyc-bus-capacity',
+    filePath: 'data/buses.csv',
     qriHost: 'http://autobot.qri.cloud'
   }
   try {
     // save the current dataset body as a CSV
+    console.log('downloading latest version of the dataset')
     await downloadLatest(options)
 
     // append a row with current weather data
     await updateCSV(options)
 
-    // commit and push to qri cloud
+    // // commit and push to qri cloud
     await qriSaveAndPublish(options)
   } catch(e) {
     console.log('Something went wrong')
