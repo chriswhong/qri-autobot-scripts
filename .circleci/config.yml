@@ -46,6 +46,16 @@ workflows:
   hourly:
     triggers:
       - schedule:
+          cron: "*/5 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - nyc-bus-capacity
+  hourly:
+    triggers:
+      - schedule:
           cron: "0 * * * *"
           filters:
             branches:
