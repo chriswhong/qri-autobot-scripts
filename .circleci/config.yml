@@ -22,7 +22,27 @@ jobs:
           steps:
             - run: cd nyc-subway-elevators && yarn
       - run: cd nyc-subway-elevators && node script.js
+  nyc-bus-capacity:
+    executor:
+      name: node/default
+      tag: '10.4'
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run: cd nyc-bus-capacity && yarn
+      - run: cd nyc-bus-capacity && node script.js
 workflows:
+  five_minutes:
+    triggers:
+      - schedule:
+          cron: "*/5 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - nyc-bus-capacity
   hourly:
     triggers:
       - schedule:

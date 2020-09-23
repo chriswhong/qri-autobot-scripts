@@ -68,7 +68,7 @@ const qriSaveAndPublish = async (options) => {
     username: 'qri-autobot',
     dsname: 'nyc-subway-elevators',
     filePath: 'data/elevators.csv',
-    qriHost: 'http://qri-autobot.chriswhong.com:2503'
+    qriHost: 'http://autobot.qri.cloud'
   }
   try {
     // save the current dataset body as a CSV
